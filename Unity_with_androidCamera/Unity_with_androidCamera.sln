@@ -1,0 +1,23 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2008
+
+Project("{BC845071-8C68-FEB5-8906-913251C378BF}") = "Unity_with_androidCamera", "Assembly-CSharp.csproj", "{B80431FF-4628-4383-C9A4-AE2BB87636C2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B80431FF-4628-4383-C9A4-AE2BB87636C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B80431FF-4628-4383-C9A4-AE2BB87636C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B80431FF-4628-4383-C9A4-AE2BB87636C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B80431FF-4628-4383-C9A4-AE2BB87636C2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Assembly-CSharp.csproj
+	EndGlobalSection
+EndGlobal
