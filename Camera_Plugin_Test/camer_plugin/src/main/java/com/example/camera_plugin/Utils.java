@@ -26,9 +26,10 @@ public class Utils {
         return frameLayout;
     }
 
-    public static void AddImageView(Activity activity, SurfaceView surfaceView, int x, int y) {
+    public static FrameLayout AddImageView(Activity activity, SurfaceView surfaceView, int x, int y) {
         FrameLayout frameLayout = AddFrameLayout(activity,x,y);
         frameLayout.addView(surfaceView);
+        return frameLayout;
     }
 
     public static void AddSurfaceView(final Activity activity, final SurfaceView surfaceView, final int x, final int y) {

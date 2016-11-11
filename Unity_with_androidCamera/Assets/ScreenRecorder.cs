@@ -24,7 +24,7 @@ public class ScreenRecorder {
 //			AndroidJavaClass captureClass = new AndroidJavaClass ("com.example.ffmpegcodec.FFMpegCodec");
 			if (captureClass != null) {
 				captureObject = captureClass.CallStatic<AndroidJavaObject>("instance");
-				//captureObject.Call("setContext", unityActivity);
+				captureObject.CallStatic("addView");
 			}
 
 		}catch(Exception ex){
@@ -45,4 +45,11 @@ public class ScreenRecorder {
 		//captureObject.Call ("startRecord", Settings.TEMP_IMAGE_PATH, imagePrefix);
 	}
 
+	public byte[] getSnap() {
+		return captureObject.CallStatic <byte[]>("snap");
+	}
+
+	public int getTexturePtr() {
+		return captureObject.CallStatic <int>("createTexture");
+	}
 }

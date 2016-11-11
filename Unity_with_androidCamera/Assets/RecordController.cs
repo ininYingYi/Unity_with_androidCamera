@@ -7,23 +7,24 @@ public class RecordController : MonoBehaviour {
 	private ScreenRecorder mScreenRecorder;
 	private WebCamTexture mCamera = null;
 	private GameObject plane;
-	private bool saveImage = false;
+	private bool startReocrd = false;
 	private long count = 0;
 	private string imagePrefix = "image-";
 	private int width, height;
-	Texture2D image;
+
 	private byte[] imageData;
 	// Use this for initialization
 	void Start () {
 		//GameObject.Find ("debug").GetComponent<TextMesh>().text = "HI";
 		mScreenRecorder = new ScreenRecorder ();
-		/*mCamera = new WebCamTexture ();
 		plane = GameObject.FindWithTag ("CameraView");
+		/*mCamera = new WebCamTexture ();
+
 		plane.GetComponent<Renderer>().material.mainTexture = mCamera;
-		mCamera.Play ();
+		mCamera.Play ();*/
 		Settings.checkPath ();
-		width = mCamera.width;
-		height = mCamera.height;*/
+		this.width = 176;
+		this.height = 144;
 	}
 	
 	// Update is called once per frame
@@ -32,23 +33,28 @@ public class RecordController : MonoBehaviour {
 	}
 
 	void FixedUpdate() {
-		if (saveImage) {
-			/*Thread thread = new Thread(Call);
-			image = new Texture2D(width, height);
-			image.SetPixels (mCamera.GetPixels ());
+		if (startReocrd) {
+			byte[] snap = mScreenRecorder.getSnap ();
+			Texture2D image = new Texture2D(width, height);
+			image.LoadImage (snap);
 			image.Apply ();
-			imageData = image.EncodeToPNG ();
-			thread.Start ();*/
+			//System.IO.File.WriteAllBytes (Settings.TEMP_IMAGE_PATH + imagePrefix + count + ".png", snap);
+			count++;
+			plane.GetComponent<Renderer> ().material.mainTexture = image;
+			/*Texture2D glTexture = Texture2D.CreateExternalTexture (500, 500, TextureFormat.ARGB32, false, false, (System.IntPtr) mScreenRecorder.getTexturePtr ());
+			plane.GetComponent<Renderer> ().material.mainTexture = glTexture;
+			System.IO.File.WriteAllBytes (Settings.TEMP_IMAGE_PATH + imagePrefix + count + ".png", glTexture.EncodeToPNG() );*/
 		}
 	}
 
 
 	void OnGUI() {
-		if (GUI.Button (new Rect (0, 0, 400, 200), "record")) {
+		if (GUI.Button (new Rect (0, 0, 400, 200), "record") && !startReocrd) {
+			startReocrd = true;
 			mScreenRecorder.startRecord();
 		}
-		if (GUI.Button (new Rect (500, 0, 400, 200), "stop")) {
-			saveImage = false;
+		if (GUI.Button (new Rect (500, 0, 400, 200), "stop") && startReocrd) {
+			startReocrd = false;
 			mScreenRecorder.stopRecord();
 		}
 	}
