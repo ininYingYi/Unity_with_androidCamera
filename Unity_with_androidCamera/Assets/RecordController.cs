@@ -2,6 +2,9 @@
 using System.Collections;
 using System.IO;
 using System.Threading;
+using System;
+using System.Text;
+
 
 public class RecordController : MonoBehaviour {
 	private ScreenRecorder mScreenRecorder;
@@ -23,8 +26,8 @@ public class RecordController : MonoBehaviour {
 		plane.GetComponent<Renderer>().material.mainTexture = mCamera;
 		mCamera.Play ();*/
 		Settings.checkPath ();
-		this.width = 176;
-		this.height = 144;
+		this.width = mScreenRecorder.getWidth();
+		this.height = mScreenRecorder.getHeight();
 	}
 	
 	// Update is called once per frame
@@ -33,7 +36,8 @@ public class RecordController : MonoBehaviour {
 	}
 
 	void FixedUpdate() {
-		if (startReocrd) {
+		//mScreenRecorder.requestUpdate ();
+		if (false) {
 			byte[] snap = mScreenRecorder.getSnap ();
 			Texture2D image = new Texture2D(width, height);
 			image.LoadImage (snap);
@@ -54,11 +58,21 @@ public class RecordController : MonoBehaviour {
 			mScreenRecorder.startRecord();
 		}
 		if (GUI.Button (new Rect (500, 0, 400, 200), "stop") && startReocrd) {
+			//mScreenRecorder.getSnap ();
 			startReocrd = false;
+			new WaitForSeconds(5);
 			mScreenRecorder.stopRecord();
 		}
 	}
 
+	public void UpdatePreview(string bytes) {
+		UnityEngine.Debug.Log("UpdatePreview");
+		byte[] byteData = Convert.FromBase64String(bytes);
+		Texture2D image = new Texture2D(width, height);
+		image.LoadImage (byteData);
+		image.Apply ();
+		plane.GetComponent<Renderer> ().material.mainTexture = image;
+	}
 	/*private void Call()
 	{
 		System.IO.File.WriteAllBytes (Settings.TEMP_IMAGE_PATH + imagePrefix + count + ".png", imageData);

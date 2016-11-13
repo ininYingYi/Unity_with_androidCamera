@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.camera_plugin" android:versionName="1.0" android:versionCode="1">
     <application android:icon="@drawable/app_icon" android:label="@string/app_name">
-        <activity android:name="com.example.camera_plugin.Camera" android:label="@string/app_name" android:configChanges="fontScale|keyboard|keyboardHidden|locale|mnc|mcc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|touchscreen" android:screenOrientation="landscape">
+        <activity android:name="com.example.camera_plugin.CameraPlugin" android:label="@string/app_name" android:configChanges="fontScale|keyboard|keyboardHidden|locale|mnc|mcc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|touchscreen" android:screenOrientation="landscape">
             <meta-data android:name="android.app.lib_name" android:value="unity" />
             <meta-data android:name="unityplayer.ForwardNativeEventsToDalvik" android:value="true" />
             <intent-filter>
@@ -11,7 +11,8 @@
         </activity>
     </application>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_VIDEO" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" />
-    <uses-feature android:name="android.hardware.camera.autofocus" />
 </manifest>

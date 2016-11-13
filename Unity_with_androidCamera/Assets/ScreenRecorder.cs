@@ -11,7 +11,8 @@ public class ScreenRecorder {
 
 	private AndroidJavaObject unityActivity = null;
 	private AndroidJavaObject captureObject = null;
-
+	private int width;
+	private int height;
 	// Use this for initialization
 	public ScreenRecorder () {
 		try{
@@ -20,12 +21,14 @@ public class ScreenRecorder {
 				unityActivity = unityPlayerActivityClass.GetStatic<AndroidJavaObject>("currentActivity");
 			}
 
-			AndroidJavaClass captureClass = new AndroidJavaClass ("com.example.camera_plugin.Camera");
+			width = unityActivity.Call<int> ("getWidth");
+			height = unityActivity.Call<int> ("getHeight");
+			/*AndroidJavaClass captureClass = new AndroidJavaClass ("com.example.camera_plugin.CameraPlugin");
 //			AndroidJavaClass captureClass = new AndroidJavaClass ("com.example.ffmpegcodec.FFMpegCodec");
 			if (captureClass != null) {
 				captureObject = captureClass.CallStatic<AndroidJavaObject>("instance");
 				captureObject.CallStatic("addView");
-			}
+			}*/
 
 		}catch(Exception ex){
 			UnityEngine.Debug.Log(ex);
@@ -35,21 +38,29 @@ public class ScreenRecorder {
 
 	public void startRecord() {
 		UnityEngine.Debug.Log("startRecord");
-		captureObject.Call ("startRecord");
+		unityActivity.Call("startRecord");
 		//captureObject.Call ("startRecord", Settings.TEMP_IMAGE_PATH, imagePrefix);
 	}
 
 	public void stopRecord() {
 		UnityEngine.Debug.Log("stopRecord");
-		captureObject.Call ("stopRecord");
+		unityActivity.Call ("stopRecord");
 		//captureObject.Call ("startRecord", Settings.TEMP_IMAGE_PATH, imagePrefix);
 	}
 
 	public byte[] getSnap() {
-		return captureObject.CallStatic <byte[]>("snap");
+		return unityActivity.Call <byte[]>("snap");
 	}
 
-	public int getTexturePtr() {
-		return captureObject.CallStatic <int>("createTexture");
+	public int getWidth() {
+		return width;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public void requestUpdate() {
+		unityActivity.Call ("requestUpdate");
 	}
 }
