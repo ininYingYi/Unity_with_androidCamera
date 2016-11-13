@@ -14,15 +14,13 @@ public class ScreenRecorder {
 	private int width;
 	private int height;
 	// Use this for initialization
-	public ScreenRecorder () {
+	public ScreenRecorder (int width, int height) {
 		try{
 
 			using (AndroidJavaClass unityPlayerActivityClass = new AndroidJavaClass("com.unity3d.player.UnityPlayer")) {
 				unityActivity = unityPlayerActivityClass.GetStatic<AndroidJavaObject>("currentActivity");
 			}
-
-			width = unityActivity.Call<int> ("getWidth");
-			height = unityActivity.Call<int> ("getHeight");
+				
 			/*AndroidJavaClass captureClass = new AndroidJavaClass ("com.example.camera_plugin.CameraPlugin");
 //			AndroidJavaClass captureClass = new AndroidJavaClass ("com.example.ffmpegcodec.FFMpegCodec");
 			if (captureClass != null) {
@@ -34,6 +32,7 @@ public class ScreenRecorder {
 			UnityEngine.Debug.Log(ex);
 			//GameObject.Find ("debug").GetComponent<TextMesh>().text = ex.ToString();
 		}
+		this.setScreenSize (width, height);
 	}
 
 	public void startRecord() {
@@ -60,7 +59,17 @@ public class ScreenRecorder {
 		return height;
 	}
 
+	public void setScreenSize(int width, int height) {
+		this.width = width;
+		this.height = height;
+		unityActivity.Call ("setScreenSize", width, height);
+	}
+
 	public void requestUpdate() {
 		unityActivity.Call ("requestUpdate");
+	}
+
+	public void sendFrame(byte[] data) {
+		unityActivity.Call ("receiveFrameData", data);
 	}
 }

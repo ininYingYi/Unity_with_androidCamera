@@ -14,20 +14,25 @@ public class RecordController : MonoBehaviour {
 	private long count = 0;
 	private string imagePrefix = "image-";
 	private int width, height;
-
+	private Thread recordThread;
+	private Texture2D image;
 	private byte[] imageData;
+	private static object LockingVar = new object();
 	// Use this for initialization
 	void Start () {
 		//GameObject.Find ("debug").GetComponent<TextMesh>().text = "HI";
-		mScreenRecorder = new ScreenRecorder ();
+
 		plane = GameObject.FindWithTag ("CameraView");
-		/*mCamera = new WebCamTexture ();
+		mCamera = new WebCamTexture ();
 
 		plane.GetComponent<Renderer>().material.mainTexture = mCamera;
-		mCamera.Play ();*/
+		mCamera.Play ();
 		Settings.checkPath ();
-		this.width = mScreenRecorder.getWidth();
-		this.height = mScreenRecorder.getHeight();
+		this.width = mCamera.width;
+		this.height = mCamera.height;
+		mScreenRecorder = new ScreenRecorder (width, height);
+		image = new Texture2D(width, height);
+
 	}
 	
 	// Update is called once per frame
@@ -36,8 +41,12 @@ public class RecordController : MonoBehaviour {
 	}
 
 	void FixedUpdate() {
+		image.SetPixels (mCamera.GetPixels());
+		image.Apply ();
+		mScreenRecorder.sendFrame (image.GetRawTextureData ());
+
 		//mScreenRecorder.requestUpdate ();
-		if (false) {
+		/*if (false) {
 			byte[] snap = mScreenRecorder.getSnap ();
 			Texture2D image = new Texture2D(width, height);
 			image.LoadImage (snap);
@@ -45,10 +54,10 @@ public class RecordController : MonoBehaviour {
 			//System.IO.File.WriteAllBytes (Settings.TEMP_IMAGE_PATH + imagePrefix + count + ".png", snap);
 			count++;
 			plane.GetComponent<Renderer> ().material.mainTexture = image;
-			/*Texture2D glTexture = Texture2D.CreateExternalTexture (500, 500, TextureFormat.ARGB32, false, false, (System.IntPtr) mScreenRecorder.getTexturePtr ());
+			Texture2D glTexture = Texture2D.CreateExternalTexture (500, 500, TextureFormat.ARGB32, false, false, (System.IntPtr) mScreenRecorder.getTexturePtr ());
 			plane.GetComponent<Renderer> ().material.mainTexture = glTexture;
-			System.IO.File.WriteAllBytes (Settings.TEMP_IMAGE_PATH + imagePrefix + count + ".png", glTexture.EncodeToPNG() );*/
-		}
+			System.IO.File.WriteAllBytes (Settings.TEMP_IMAGE_PATH + imagePrefix + count + ".png", glTexture.EncodeToPNG() );
+		}*/
 	}
 
 
@@ -60,22 +69,8 @@ public class RecordController : MonoBehaviour {
 		if (GUI.Button (new Rect (500, 0, 400, 200), "stop") && startReocrd) {
 			//mScreenRecorder.getSnap ();
 			startReocrd = false;
-			new WaitForSeconds(5);
 			mScreenRecorder.stopRecord();
 		}
 	}
 
-	public void UpdatePreview(string bytes) {
-		UnityEngine.Debug.Log("UpdatePreview");
-		byte[] byteData = Convert.FromBase64String(bytes);
-		Texture2D image = new Texture2D(width, height);
-		image.LoadImage (byteData);
-		image.Apply ();
-		plane.GetComponent<Renderer> ().material.mainTexture = image;
-	}
-	/*private void Call()
-	{
-		System.IO.File.WriteAllBytes (Settings.TEMP_IMAGE_PATH + imagePrefix + count + ".png", imageData);
-		count++;
-	}*/
 }

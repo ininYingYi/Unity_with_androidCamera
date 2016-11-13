@@ -7,10 +7,14 @@ import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
+import android.media.MediaCodec;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -19,6 +23,7 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
@@ -37,7 +42,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by NMSL-YingYi on 2016/11/7.
@@ -56,70 +67,72 @@ public class CameraPlugin extends UnityPlayerActivity {
         super.onCreate(savedInstanceState);
         init();
     }
+    private Timer timer;
 
     private void init() {
-        sf = new SurfaceTexture(0);
-        sf.setOnFrameAvailableListener(onFrameAvailableListener);
-        mPreview = new TextureView(this);
-        mPreview.setSurfaceTexture(sf);
-        mPreview.setSurfaceTextureListener(surfaceTextureListener);
-        this.runOnUiThread(new Runnable() {
+        surface = MediaCodec.createPersistentInputSurface();
+        timer = new Timer();
+        timer.schedule(timerTask, 0, 1);
+        //sf = new SurfaceTexture(0);
+        //sf.setOnFrameAvailableListener(onFrameAvailableListener);
+        //surface = new Surface (sf);
+        //mPreview = new TextureView(this);
+        //mPreview.setSurfaceTexture(sf);
+        //mPreview.setSurfaceTextureListener(surfaceTextureListener);
+        /*this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 addContentView(mPreview, new FrameLayout.LayoutParams(400, 400));
             }
-        });
+        });*/
         Toast.makeText(CameraPlugin.this, "init done", Toast.LENGTH_LONG).show();
-        if (mPreview.isAvailable()) {
-            surfaceTextureListener.onSurfaceTextureAvailable(mPreview.getSurfaceTexture(), mPreview.getWidth(), mPreview.getHeight());
-        }
+
     }
     private SurfaceTexture sf;
     public void startRecord() {
         new MediaPrepareTask().execute(null, null, null);
     }
     private int videoWidth, videoHeight;
+    private Surface surface;
     public boolean prepareVideoRecorder() {
-        mCamera = CameraHelper.getDefaultCameraInstance();
+        //mCamera = CameraHelper.getDefaultCameraInstance();
 
         // We need to make sure that our preview and recording video size are supported by the
         // camera. Query camera to find all the sizes and choose the optimal size given the
         // dimensions of our preview surface.
-        Camera.Parameters parameters = mCamera.getParameters();
-        List<Camera.Size> mSupportedPreviewSizes = parameters.getSupportedPreviewSizes();
-        List<Camera.Size> mSupportedVideoSizes = parameters.getSupportedVideoSizes();
-        Camera.Size optimalSize = CameraHelper.getOptimalVideoSize(mSupportedVideoSizes,
-                mSupportedPreviewSizes, mPreview.getWidth(), mPreview.getHeight());
+        //Camera.Parameters parameters = mCamera.getParameters();
+        //List<Camera.Size> mSupportedPreviewSizes = parameters.getSupportedPreviewSizes();
+        //List<Camera.Size> mSupportedVideoSizes = parameters.getSupportedVideoSizes();
+        //Camera.Size optimalSize = CameraHelper.getOptimalVideoSize(mSupportedVideoSizes,  mSupportedPreviewSizes, mPreview.getWidth(), mPreview.getHeight());
 
         // Use the same size for recording profile.
         CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
-        profile.videoFrameWidth = optimalSize.width;
-        profile.videoFrameHeight = optimalSize.height;
-        videoWidth = profile.videoFrameWidth;
-        videoHeight = profile.videoFrameHeight;
+        profile.videoFrameWidth = videoWidth;
+        profile.videoFrameHeight = videoHeight;
 
         // likewise for the camera object itself.
-        parameters.setPreviewSize(profile.videoFrameWidth, profile.videoFrameHeight);
-        mCamera.setParameters(parameters);
-        try {
+        //parameters.setPreviewSize(profile.videoFrameWidth, profile.videoFrameHeight);
+        //mCamera.setParameters(parameters);
+        /*try {
             // Requires API level 11+, For backward compatibility use {@link setPreviewDisplay}
             // with {@link SurfaceView}
             mCamera.setPreviewTexture(mPreview.getSurfaceTexture());
         } catch (IOException e) {
             Log.e(TAG, "Surface texture is unavailable or unsuitable" + e.getMessage());
             return false;
-        }
+        }*/
 
         // BEGIN_INCLUDE (configure_media_recorder)
         mMediaRecorder = new MediaRecorder();
 
         // Step 1: Unlock and set camera to MediaRecorder
-        mCamera.unlock();
-        mMediaRecorder.setCamera(mCamera);
+        //mCamera.unlock();
+        //mMediaRecorder.setCamera(mCamera);
+        mMediaRecorder.setInputSurface(surface);
 
         // Step 2: Set sources
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT );
-        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
 
         // Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
         mMediaRecorder.setProfile(profile);
@@ -143,9 +156,9 @@ public class CameraPlugin extends UnityPlayerActivity {
     }
 
     public void stopRecord() {
-        snap();
+
         // stop recording and release camera
-        /*try {
+        try {
             mMediaRecorder.stop();  // stop the recording
         } catch (RuntimeException e) {
             // RuntimeException is thrown when stop() is called immediately after start().
@@ -155,10 +168,10 @@ public class CameraPlugin extends UnityPlayerActivity {
             //mOutputFile.delete();
         }
         releaseMediaRecorder(); // release the MediaRecorder object
-        mCamera.lock();         // take camera access back from MediaRecorder
+        //mCamera.lock();         // take camera access back from MediaRecorder
 
         // inform the user that recording has stopped
-        releaseCamera();*/
+        releaseCamera();
     }
 
     private void releaseMediaRecorder(){
@@ -170,11 +183,13 @@ public class CameraPlugin extends UnityPlayerActivity {
             mMediaRecorder = null;
             // Lock camera for later use i.e taking it back from MediaRecorder.
             // MediaRecorder doesn't need it anymore and we will release it if the activity pauses.
-            mCamera.lock();
+            if (mCamera != null) {
+                mCamera.lock();
+            }
         }
     }
 
-    private void releaseCamera(){
+    private void releaseCamera() {
         if (mCamera != null){
             // release the camera for other applications
             mCamera.release();
@@ -190,73 +205,6 @@ public class CameraPlugin extends UnityPlayerActivity {
         // release the camera immediately on pause event
         releaseCamera();
     }
-    private TextureView.SurfaceTextureListener surfaceTextureListener = new TextureView.SurfaceTextureListener() {
-
-        @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {
-            //Get camera
-            mPreview.setLayoutParams(new FrameLayout.LayoutParams(400, 400, Gravity.CENTER));
-            Toast.makeText(CameraPlugin.this, "surface available", Toast.LENGTH_LONG).show();
-            sf = surfaceTexture;
-        }
-
-        @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int i, int i1) {
-
-        }
-
-        @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-            return false;
-        }
-
-        @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
-
-        }
-    };
-
-    private SurfaceTexture.OnFrameAvailableListener onFrameAvailableListener = new SurfaceTexture.OnFrameAvailableListener() {
-        @Override
-        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            Bitmap bitmap = mPreview.getBitmap();
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos);
-            byte[] bitmapdata = bos.toByteArray();
-            String strData = Base64.encodeToString(bitmapdata, Base64.DEFAULT);
-            UnityPlayer.UnitySendMessage("RecordController", "UpdatePreview", strData);
-        }
-    };
-
-    public void requestUpdate() {
-        Bitmap bitmap = mPreview.getBitmap();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos);
-        byte[] bitmapdata = bos.toByteArray();
-        String strData = Base64.encodeToString(bitmapdata, Base64.DEFAULT);
-        UnityPlayer.UnitySendMessage("RecordController", "UpdatePreview", strData);
-    }
-
-    public byte[] snap() {
-        Bitmap bitmap = mPreview.getBitmap();
-        FileOutputStream out = null;
-        try {
-            out = new FileOutputStream("/sdcard/love.png");
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // bmp is your Bitmap instance
-            // PNG is a lossless format, the compression factor (100) is ignored
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (out != null) {
-                    out.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return null;
-    }
 
     public int getWidth() {
         return videoWidth;
@@ -265,6 +213,12 @@ public class CameraPlugin extends UnityPlayerActivity {
     public int getHeight() {
         return videoHeight;
     }
+
+    public void setScreenSize(int width, int height) {
+        this.videoWidth = width;
+        this.videoHeight = height;
+    }
+
 
     class MediaPrepareTask extends AsyncTask<Void, Void, Boolean> {
         @Override
@@ -283,4 +237,32 @@ public class CameraPlugin extends UnityPlayerActivity {
             return true;
         }
     }
+    private ArrayList<byte[]> frameDatas = new ArrayList();
+    public void receiveFrameData(byte[] data) {
+        frameDatas.add(data);
+        /*Canvas canvas = surface.lockHardwareCanvas();
+        Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+        if (bitmap != null) {
+            canvas.drawBitmap(bitmap, 0, 0, new Paint());
+        }
+        surface.unlockCanvasAndPost(canvas);*/
+    }
+
+    private TimerTask timerTask = new TimerTask() {
+        @Override
+        public void run() {
+            byte[] data;
+            Iterator<byte[]> iterator = frameDatas.iterator();
+            if (iterator.hasNext()) {
+                data = iterator.next();
+                Canvas canvas = surface.lockHardwareCanvas();
+                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+                if (bitmap != null) {
+                    canvas.drawBitmap(bitmap, 0, 0, new Paint());
+                }
+                surface.unlockCanvasAndPost(canvas);
+                iterator.remove();
+            }
+        }
+    };
 }
