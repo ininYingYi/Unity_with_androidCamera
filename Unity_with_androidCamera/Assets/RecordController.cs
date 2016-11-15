@@ -30,9 +30,12 @@ public class RecordController : MonoBehaviour {
 		Settings.checkPath ();
 		this.width = mCamera.width;
 		this.height = mCamera.height;
-		mScreenRecorder = new ScreenRecorder (width, height);
-		image = new Texture2D(width, height);
 
+		//image = new Texture2D(width, height);
+		System.IntPtr texturePtr = mCamera.GetNativeTextureID ();
+		mScreenRecorder = new ScreenRecorder ();
+		mScreenRecorder.setGLTextureID (texturePtr);
+		mScreenRecorder.setScreenSize (width, height);
 	}
 	
 	// Update is called once per frame
@@ -41,9 +44,12 @@ public class RecordController : MonoBehaviour {
 	}
 
 	void FixedUpdate() {
-		image.SetPixels (mCamera.GetPixels());
+		if (startReocrd) {
+			//mScreenRecorder.invalidate ();
+		}
+		/*image.SetPixels (mCamera.GetPixels());
 		image.Apply ();
-		mScreenRecorder.sendFrame (image.GetRawTextureData ());
+		mScreenRecorder.sendFrame (image.GetRawTextureData ());*/
 
 		//mScreenRecorder.requestUpdate ();
 		/*if (false) {
@@ -69,6 +75,7 @@ public class RecordController : MonoBehaviour {
 		if (GUI.Button (new Rect (500, 0, 400, 200), "stop") && startReocrd) {
 			//mScreenRecorder.getSnap ();
 			startReocrd = false;
+			new WaitForSecondsRealtime (3);
 			mScreenRecorder.stopRecord();
 		}
 	}

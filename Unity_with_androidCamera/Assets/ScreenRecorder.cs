@@ -14,7 +14,7 @@ public class ScreenRecorder {
 	private int width;
 	private int height;
 	// Use this for initialization
-	public ScreenRecorder (int width, int height) {
+	public ScreenRecorder () {
 		try{
 
 			using (AndroidJavaClass unityPlayerActivityClass = new AndroidJavaClass("com.unity3d.player.UnityPlayer")) {
@@ -32,7 +32,7 @@ public class ScreenRecorder {
 			UnityEngine.Debug.Log(ex);
 			//GameObject.Find ("debug").GetComponent<TextMesh>().text = ex.ToString();
 		}
-		this.setScreenSize (width, height);
+
 	}
 
 	public void startRecord() {
@@ -71,5 +71,14 @@ public class ScreenRecorder {
 
 	public void sendFrame(byte[] data) {
 		unityActivity.Call ("receiveFrameData", data);
+	}
+
+	public void setGLTextureID(System.IntPtr id) {
+		int texName = id.ToInt32();
+		unityActivity.Call ("setGLTextureID", texName);
+	}
+
+	public void invalidate() {
+		unityActivity.Call ("invalidate");
 	}
 }

@@ -4,11 +4,13 @@ package com.example.camera_plugin;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
@@ -19,6 +21,7 @@ import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcel;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
@@ -70,9 +73,9 @@ public class CameraPlugin extends UnityPlayerActivity {
     private Timer timer;
 
     private void init() {
-        surface = MediaCodec.createPersistentInputSurface();
-        timer = new Timer();
-        timer.schedule(timerTask, 0, 1);
+        //surface = MediaCodec.createPersistentInputSurface();
+        /*timer = new Timer();
+        timer.schedule(timerTask, 0, 1);*/
         //sf = new SurfaceTexture(0);
         //sf.setOnFrameAvailableListener(onFrameAvailableListener);
         //surface = new Surface (sf);
@@ -86,7 +89,71 @@ public class CameraPlugin extends UnityPlayerActivity {
             }
         });*/
         Toast.makeText(CameraPlugin.this, "init done", Toast.LENGTH_LONG).show();
+    }
 
+
+
+    private MySurface mySurface;
+    private Surface persistentSurface;
+    public void setGLTextureID(int texName) {
+        final int tex = texName;
+        persistentSurface = MediaCodec.createPersistentInputSurface();
+        //persistentSurface.writeToParcel();
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                sf = new SurfaceTexture(tex);
+                surface = new Surface(sf);
+                sf.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
+                    @Override
+                    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+                        sf.updateTexImage();
+                        surface.writeToParcel(surfaceData, 0);
+                        surfaceData.setDataPosition(0);
+                        persistentSurface.readFromParcel(surfaceData);
+                        Log.d(TAG, "onFrameAvailable");
+                    }
+                });
+            }
+        });
+
+
+
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                //mySurface = new MySurface(CameraPlugin.this);
+                //addContentView(mySurface, new FrameLayout.LayoutParams(400, 400));
+            }
+        });
+
+    }
+    private Parcel surfaceData = Parcel.obtain();
+    private class MySurface extends View
+    {
+        public MySurface(Context context) {
+            super(context);
+            // TODO Auto-generated constructor stub
+        }
+        @Override
+        protected void onDraw(Canvas canvas)
+        {
+            super.onDraw(canvas);
+            /*sf.releaseTexImage();
+            sf.updateTexImage();
+            surface.writeToParcel(surfaceData, 0);
+            surfaceData.setDataPosition(0);
+            persistentSurface.readFromParcel(surfaceData);*/
+        }
+    }
+
+    public void invalidate() {
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mySurface.invalidate();
+            }
+        });
     }
     private SurfaceTexture sf;
     public void startRecord() {
@@ -128,14 +195,20 @@ public class CameraPlugin extends UnityPlayerActivity {
         // Step 1: Unlock and set camera to MediaRecorder
         //mCamera.unlock();
         //mMediaRecorder.setCamera(mCamera);
-        mMediaRecorder.setInputSurface(surface);
+        mMediaRecorder.setInputSurface(persistentSurface);
 
         // Step 2: Set sources
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT );
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
 
         // Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
-        mMediaRecorder.setProfile(profile);
+        //mMediaRecorder.setProfile(profile);
+        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mMediaRecorder.setVideoEncodingBitRate(10000000);
+        mMediaRecorder.setVideoFrameRate(30);
+        mMediaRecorder.setVideoSize(videoWidth, videoHeight);
+        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 
         // Step 4: Set output file
         mMediaRecorder.setOutputFile("/sdcard/love.mp4");
@@ -163,6 +236,7 @@ public class CameraPlugin extends UnityPlayerActivity {
         } catch (RuntimeException e) {
             // RuntimeException is thrown when stop() is called immediately after start().
             // In this case the output file is not properly constructed ans should be deleted.
+            Log.d(TAG, e.getMessage());
             Log.d(TAG, "RuntimeException: stop() is called immediately after start()");
             //noinspection ResultOfMethodCallIgnored
             //mOutputFile.delete();
@@ -217,8 +291,8 @@ public class CameraPlugin extends UnityPlayerActivity {
     public void setScreenSize(int width, int height) {
         this.videoWidth = width;
         this.videoHeight = height;
+        sf.setDefaultBufferSize(width, height);
     }
-
 
     class MediaPrepareTask extends AsyncTask<Void, Void, Boolean> {
         @Override
@@ -228,7 +302,7 @@ public class CameraPlugin extends UnityPlayerActivity {
                 // Camera is available and unlocked, MediaRecorder is prepared,
                 // now you can start recording
                 mMediaRecorder.start();
-
+                Log.d(TAG, "mMediaRecorder.start");
             } else {
                 // prepare didn't work, release the camera
                 releaseMediaRecorder();
@@ -256,11 +330,29 @@ public class CameraPlugin extends UnityPlayerActivity {
             if (iterator.hasNext()) {
                 data = iterator.next();
                 Canvas canvas = surface.lockHardwareCanvas();
+
                 Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                 if (bitmap != null) {
                     canvas.drawBitmap(bitmap, 0, 0, new Paint());
+                    FileOutputStream out = null;
+                    try {
+                        out = new FileOutputStream("/sdcard/love.png");
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // bmp is your Bitmap instance
+                        // PNG is a lossless format, the compression factor (100) is ignored
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        try {
+                            if (out != null) {
+                                out.close();
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
                 surface.unlockCanvasAndPost(canvas);
+
                 iterator.remove();
             }
         }
