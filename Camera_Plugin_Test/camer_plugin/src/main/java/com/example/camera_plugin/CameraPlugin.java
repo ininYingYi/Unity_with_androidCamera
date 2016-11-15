@@ -18,6 +18,9 @@ import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.MediaCodec;
 import android.media.MediaRecorder;
+import android.opengl.GLES11Ext;
+import android.opengl.GLES20;
+import android.opengl.GLUtils;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -53,6 +56,8 @@ import java.util.ListIterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.microedition.khronos.opengles.GL10;
+
 /**
  * Created by NMSL-YingYi on 2016/11/7.
  */
@@ -71,7 +76,7 @@ public class CameraPlugin extends UnityPlayerActivity {
         init();
     }
     private Timer timer;
-
+    private int mGlSurfaceTexture;
     private void init() {
         //surface = MediaCodec.createPersistentInputSurface();
         /*timer = new Timer();
@@ -89,11 +94,22 @@ public class CameraPlugin extends UnityPlayerActivity {
             }
         });*/
         Toast.makeText(CameraPlugin.this, "init done", Toast.LENGTH_LONG).show();
+        mGlSurfaceTexture = this.createTexture();
+        sf = new SurfaceTexture(mGlSurfaceTexture);
+        surface = new Surface(sf);
+        sf.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
+            @Override
+            public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+
+                Log.d(TAG, "onFrameAvailable");
+            }
+        });
     }
 
+    public int getTextureID() {
+        return mGlSurfaceTexture;
+    }
 
-
-    private MySurface mySurface;
     private Surface persistentSurface;
     public void setGLTextureID(int texName) {
         final int tex = texName;
@@ -129,32 +145,7 @@ public class CameraPlugin extends UnityPlayerActivity {
 
     }
     private Parcel surfaceData = Parcel.obtain();
-    private class MySurface extends View
-    {
-        public MySurface(Context context) {
-            super(context);
-            // TODO Auto-generated constructor stub
-        }
-        @Override
-        protected void onDraw(Canvas canvas)
-        {
-            super.onDraw(canvas);
-            /*sf.releaseTexImage();
-            sf.updateTexImage();
-            surface.writeToParcel(surfaceData, 0);
-            surfaceData.setDataPosition(0);
-            persistentSurface.readFromParcel(surfaceData);*/
-        }
-    }
 
-    public void invalidate() {
-        this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mySurface.invalidate();
-            }
-        });
-    }
     private SurfaceTexture sf;
     public void startRecord() {
         new MediaPrepareTask().execute(null, null, null);
@@ -162,15 +153,15 @@ public class CameraPlugin extends UnityPlayerActivity {
     private int videoWidth, videoHeight;
     private Surface surface;
     public boolean prepareVideoRecorder() {
-        //mCamera = CameraHelper.getDefaultCameraInstance();
+        mCamera = CameraHelper.getDefaultCameraInstance();
 
         // We need to make sure that our preview and recording video size are supported by the
         // camera. Query camera to find all the sizes and choose the optimal size given the
         // dimensions of our preview surface.
-        //Camera.Parameters parameters = mCamera.getParameters();
-        //List<Camera.Size> mSupportedPreviewSizes = parameters.getSupportedPreviewSizes();
-        //List<Camera.Size> mSupportedVideoSizes = parameters.getSupportedVideoSizes();
-        //Camera.Size optimalSize = CameraHelper.getOptimalVideoSize(mSupportedVideoSizes,  mSupportedPreviewSizes, mPreview.getWidth(), mPreview.getHeight());
+        Camera.Parameters parameters = mCamera.getParameters();
+        List<Camera.Size> mSupportedPreviewSizes = parameters.getSupportedPreviewSizes();
+        List<Camera.Size> mSupportedVideoSizes = parameters.getSupportedVideoSizes();
+        Camera.Size optimalSize = CameraHelper.getOptimalVideoSize(mSupportedVideoSizes,  mSupportedPreviewSizes, videoWidth, videoHeight);
 
         // Use the same size for recording profile.
         CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
@@ -179,36 +170,30 @@ public class CameraPlugin extends UnityPlayerActivity {
 
         // likewise for the camera object itself.
         //parameters.setPreviewSize(profile.videoFrameWidth, profile.videoFrameHeight);
-        //mCamera.setParameters(parameters);
-        /*try {
+        mCamera.setParameters(parameters);
+        try {
             // Requires API level 11+, For backward compatibility use {@link setPreviewDisplay}
             // with {@link SurfaceView}
-            mCamera.setPreviewTexture(mPreview.getSurfaceTexture());
+            mCamera.setPreviewTexture(sf);
         } catch (IOException e) {
             Log.e(TAG, "Surface texture is unavailable or unsuitable" + e.getMessage());
             return false;
-        }*/
+        }
 
         // BEGIN_INCLUDE (configure_media_recorder)
         mMediaRecorder = new MediaRecorder();
 
         // Step 1: Unlock and set camera to MediaRecorder
-        //mCamera.unlock();
-        //mMediaRecorder.setCamera(mCamera);
-        mMediaRecorder.setInputSurface(persistentSurface);
+        mCamera.unlock();
+        mMediaRecorder.setCamera(mCamera);
+        //mMediaRecorder.setInputSurface(persistentSurface);
 
         // Step 2: Set sources
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT );
-        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
 
         // Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
-        //mMediaRecorder.setProfile(profile);
-        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        mMediaRecorder.setVideoEncodingBitRate(10000000);
-        mMediaRecorder.setVideoFrameRate(30);
-        mMediaRecorder.setVideoSize(videoWidth, videoHeight);
-        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mMediaRecorder.setProfile(profile);
 
         // Step 4: Set output file
         mMediaRecorder.setOutputFile("/sdcard/love.mp4");
@@ -242,7 +227,7 @@ public class CameraPlugin extends UnityPlayerActivity {
             //mOutputFile.delete();
         }
         releaseMediaRecorder(); // release the MediaRecorder object
-        //mCamera.lock();         // take camera access back from MediaRecorder
+        mCamera.lock();         // take camera access back from MediaRecorder
 
         // inform the user that recording has stopped
         releaseCamera();
@@ -278,6 +263,25 @@ public class CameraPlugin extends UnityPlayerActivity {
         releaseMediaRecorder();
         // release the camera immediately on pause event
         releaseCamera();
+    }
+
+    private int createTexture(){
+        int[] textures = new int[1];
+
+        // Generate the texture to where android view will be rendered
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glGenTextures(1, textures, 0);
+        //checkGlError("Texture generate");
+
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textures[0]);
+        //checkGlError("Texture bind");
+
+        GLES20.glTexParameterf(GLES11Ext.GL_BGRA, GL10.GL_TEXTURE_MIN_FILTER,GL10.GL_LINEAR);
+        GLES20.glTexParameterf(GLES11Ext.GL_BGRA, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+        GLES20.glTexParameteri(GLES11Ext.GL_BGRA, GL10.GL_TEXTURE_WRAP_S, GL10.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES11Ext.GL_BGRA, GL10.GL_TEXTURE_WRAP_T, GL10.GL_CLAMP_TO_EDGE);
+
+        return textures[0];
     }
 
     public int getWidth() {

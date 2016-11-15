@@ -18,24 +18,29 @@ public class RecordController : MonoBehaviour {
 	private Texture2D image;
 	private byte[] imageData;
 	private static object LockingVar = new object();
+	private int textureID;
 	// Use this for initialization
 	void Start () {
 		//GameObject.Find ("debug").GetComponent<TextMesh>().text = "HI";
 
 		plane = GameObject.FindWithTag ("CameraView");
-		mCamera = new WebCamTexture ();
+		//mCamera = new WebCamTexture ();
 
-		plane.GetComponent<Renderer>().material.mainTexture = mCamera;
-		mCamera.Play ();
+		//plane.GetComponent<Renderer>().material.mainTexture = mCamera;
+		//mCamera.Play ();
 		Settings.checkPath ();
-		this.width = mCamera.width;
-		this.height = mCamera.height;
+		this.width = 800;
+		this.height = 600;
 
 		//image = new Texture2D(width, height);
-		System.IntPtr texturePtr = mCamera.GetNativeTextureID ();
+		//System.IntPtr texturePtr = mCamera.GetNativeTextureID ();
 		mScreenRecorder = new ScreenRecorder ();
-		mScreenRecorder.setGLTextureID (texturePtr);
+		//mScreenRecorder.setGLTextureID (texturePtr);
 		mScreenRecorder.setScreenSize (width, height);
+		textureID = mScreenRecorder.getTextureID ();
+		image = Texture2D.CreateExternalTexture (width, height, TextureFormat.BGRA32, false, true, (System.IntPtr) textureID);
+		plane.GetComponent<Renderer>().material.mainTexture = image;
+	
 	}
 	
 	// Update is called once per frame
@@ -44,6 +49,9 @@ public class RecordController : MonoBehaviour {
 	}
 
 	void FixedUpdate() {
+		UnityEngine.Debug.Log(textureID);
+		image.UpdateExternalTexture ((System.IntPtr)textureID);
+		plane.GetComponent<Renderer>().material.mainTexture = image;
 		if (startReocrd) {
 			//mScreenRecorder.invalidate ();
 		}

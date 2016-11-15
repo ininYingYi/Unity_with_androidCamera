@@ -81,4 +81,8 @@ public class ScreenRecorder {
 	public void invalidate() {
 		unityActivity.Call ("invalidate");
 	}
+
+	public int getTextureID() {
+		return unityActivity.Call <int> ("getTextureID");
+	}
 }
